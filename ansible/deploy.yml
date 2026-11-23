@@ -1,0 +1,73 @@
+---
+- name: Deploy DevOps Final stack locally
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Install Docker and Compose plugin on Debian/Ubuntu
+      when: ansible_os_family == "Debian"
+      block:
+        - name: Install required packages
+          ansible.builtin.apt:
+            name:
+              - docker.io
+              - docker-compose-v2
+            state: present
+            update_cache: true
+            cache_valid_time: 3600
+
+        - name: Ensure Docker service is running
+          ansible.builtin.service:
+            name: docker
+            state: started
+            enabled: true
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: /opt/devops-final
+        state: directory
+        mode: "0755"
+
+    - name: Copy Dockerfile
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../Dockerfile"
+        dest: /opt/devops-final/Dockerfile
+        mode: "0644"
+
+    - name: Copy package manifest
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../package.json"
+        dest: /opt/devops-final/package.json
+        mode: "0644"
+
+    - name: Copy application source
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../src"
+        dest: /opt/devops-final/
+        mode: "0644"
+
+    - name: Copy Compose file
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../docker-compose.yml"
+        dest: /opt/devops-final/docker-compose.yml
+        mode: "0644"
+
+    - name: Copy Prometheus configuration
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../prometheus.yml"
+        dest: /opt/devops-final/prometheus.yml
+        mode: "0644"
+
+    - name: Deploy or update monitoring stack
+      ansible.builtin.command:
+        cmd: docker compose up -d --build
+        chdir: /opt/devops-final
+      register: compose_result
+      changed_when: >-
+        'Creating' in compose_result.stdout or
+        'Recreating' in compose_result.stdout or
+        'Starting' in compose_result.stdout or
+        'Building' in compose_result.stderr or
+        'Pulling' in compose_result.stdout
