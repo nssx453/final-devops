@@ -47,3 +47,4 @@ docker compose down -v
 bash
 ansible-playbook -i ansible/inventory.ini ansible/deploy.yml --ask-become-pass
 Плейбук: ставит Docker, создаёт /opt/devops-final, копирует файлы, запускает docker compose up -d.
+мяу
